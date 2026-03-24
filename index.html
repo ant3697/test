@@ -196,12 +196,12 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label class="label-tech" title="Superficie útil del recinto a climatizar">Superficie a climatizar (m²)</label>
-                                <input type="number" id="simp-area" value="100" oninput="calculateSimplifiedMethod()" class="w-full font-mono text-lg font-bold text-blue-600 dark:text-blue-400 border border-gray-300 dark:border-slate-600 focus:border-blue-500 bg-white dark:bg-slate-900 p-3 rounded-lg outline-none transition-colors">
+                                <input type="number" id="simp-area" value="100" oninput="triggerSimplifiedCalculate()" class="w-full font-mono text-lg font-bold text-blue-600 dark:text-blue-400 border border-gray-300 dark:border-slate-600 focus:border-blue-500 bg-white dark:bg-slate-900 p-3 rounded-lg outline-none transition-colors">
                             </div>
                             
                             <div>
                                 <label class="label-tech" title="Determina la carga base en W/m²">Antigüedad / Nivel de Aislamiento</label>
-                                <select id="simp-age" onchange="calculateSimplifiedMethod()" class="w-full bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-600 p-3 rounded-lg text-gray-800 dark:text-slate-200 text-sm font-semibold outline-none focus:border-blue-500 cursor-pointer">
+                                <select id="simp-age" onchange="triggerSimplifiedCalculate()" class="w-full bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-600 p-3 rounded-lg text-gray-800 dark:text-slate-200 text-sm font-semibold outline-none focus:border-blue-500 cursor-pointer">
                                     <option value="nuevo">Vivienda Nueva / Bien Aislada (Post-CTE)</option>
                                     <option value="medio" selected>Vivienda Media (Aislamiento básico)</option>
                                     <option value="antiguo">Vivienda Antigua / Sin Aislar (Pre-1980)</option>
@@ -210,7 +210,7 @@
 
                             <div>
                                 <label class="label-tech" title="Factor F1 (Según mapa climático CTE)">Zona Climática (CTE)</label>
-                                <select id="simp-zone" onchange="calculateSimplifiedMethod()" class="w-full bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-600 p-3 rounded-lg text-gray-800 dark:text-slate-200 text-sm font-semibold outline-none focus:border-blue-500 cursor-pointer">
+                                <select id="simp-zone" onchange="triggerSimplifiedCalculate()" class="w-full bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-600 p-3 rounded-lg text-gray-800 dark:text-slate-200 text-sm font-semibold outline-none focus:border-blue-500 cursor-pointer">
                                     <option value="A">Zona A (Muy cálida en verano / Suave invierno)</option>
                                     <option value="B" selected>Zona B (Cálida / Mediterráneo Costa)</option>
                                     <option value="C">Zona C (Templada / Interior-Costa)</option>
@@ -221,7 +221,7 @@
 
                             <div>
                                 <label class="label-tech" title="Factor F2 (Protección solar)">Exposición Solar Principal (Factor F2)</label>
-                                <select id="simp-sun" onchange="calculateSimplifiedMethod()" class="w-full bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-600 p-3 rounded-lg text-gray-800 dark:text-slate-200 text-sm font-semibold outline-none focus:border-blue-500 cursor-pointer">
+                                <select id="simp-sun" onchange="triggerSimplifiedCalculate()" class="w-full bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-600 p-3 rounded-lg text-gray-800 dark:text-slate-200 text-sm font-semibold outline-none focus:border-blue-500 cursor-pointer">
                                     <option value="sol" selected>Exposición normal o Soleada (Sur/Oeste)</option>
                                     <option value="sombra">En zona de sombra o Norte</option>
                                 </select>
@@ -229,7 +229,7 @@
 
                             <div class="md:col-span-2">
                                 <label class="label-tech" title="Factor F3 (Disipación térmica)">Paredes al exterior y Cubiertas (Factor F3)</label>
-                                <select id="simp-walls" onchange="calculateSimplifiedMethod()" class="w-full bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-600 p-3 rounded-lg text-gray-800 dark:text-slate-200 text-sm font-semibold outline-none focus:border-blue-500 cursor-pointer">
+                                <select id="simp-walls" onchange="triggerSimplifiedCalculate()" class="w-full bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-600 p-3 rounded-lg text-gray-800 dark:text-slate-200 text-sm font-semibold outline-none focus:border-blue-500 cursor-pointer">
                                     <option value="pocas" selected>2 o menos paredes al exterior (Piso intermedio)</option>
                                     <option value="muchas">Más de 2 paredes al exterior, o bajo cubierta / chalet</option>
                                 </select>
@@ -495,6 +495,71 @@
                     </div>
                 </div>
             </section>
+            
+            <!-- Dimensionado de Caudal -->
+            <div class="bg-white dark:bg-slate-800/60 p-6 rounded-2xl border border-blue-200 dark:border-blue-500/30 shadow-sm mb-6">
+                <h3 class="text-blue-700 dark:text-blue-400 font-bold text-sm uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" /></svg>
+                    Dimensionado de Equipos: Caudal de Impulsión
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-start">
+                    <div>
+                        <label class="block text-[10px] text-gray-500 dark:text-slate-400 uppercase font-bold mb-1">Temporada</label>
+                        <select id="dim-season" onchange="onSeasonChange()" class="w-full bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-700 focus:outline-none p-2.5 rounded text-gray-800 dark:text-slate-200 text-sm font-bold text-center h-[42px] cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
+                            <option value="verano">Verano (Refrigeración)</option>
+                            <option value="invierno">Invierno (Calefacción)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-gray-500 dark:text-slate-400 uppercase font-bold mb-1">Carga Sensible (Qs)</label>
+                        <div class="bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-700 p-2.5 rounded text-amber-600 dark:text-amber-400 font-mono text-sm flex items-center justify-center h-[42px] font-bold" id="dim-qs">0 W</div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-gray-500 dark:text-slate-400 uppercase font-bold mb-1" title="RITE IT 1.1">T. Local (°C) *</label>
+                        <input type="number" id="dim-tloc" value="24" oninput="triggerCalculate();" class="w-full bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-700 focus:outline-none p-2.5 rounded text-gray-800 dark:text-slate-200 text-sm font-mono text-center transition-colors h-[42px]">
+                        <div id="tloc-alert" class="text-[9px] text-emerald-600 dark:text-emerald-400 mt-1 h-3 transition-colors">✓ RITE IT 1.1 Cumplido</div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-gray-500 dark:text-slate-400 uppercase font-bold mb-1" title="Salto recomendado ΔT ≤ 12°C">T. Impulsión (°C)</label>
+                        <input type="number" id="dim-timp" value="12" oninput="triggerCalculate();" class="w-full bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-700 focus:outline-none p-2.5 rounded text-gray-800 dark:text-slate-200 text-sm font-mono text-center transition-colors h-[42px]">
+                        <div id="timp-alert" class="text-[9px] text-emerald-600 dark:text-emerald-400 mt-1 h-3 transition-colors">✓ ΔT Adecuado</div>
+                    </div>
+                    <div class="bg-blue-100 dark:bg-blue-900/40 border border-blue-300 dark:border-blue-500/50 p-2.5 rounded-xl text-center shadow-inner relative overflow-hidden h-[60px] flex flex-col justify-center">
+                        <div class="absolute inset-0 bg-blue-500/5 dark:bg-blue-500/10 animate-pulse"></div>
+                        <label class="block text-[9px] text-blue-700 dark:text-blue-300 uppercase tracking-widest font-bold mb-0.5 relative z-10">Caudal Necesario</label>
+                        <div class="text-xl font-black text-blue-900 dark:text-white font-mono tracking-tighter relative z-10 leading-none" id="dim-caudal">0 <span class="text-xs font-normal text-blue-700 dark:text-blue-200">m³/h</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Módulo de Justificación de Energía Renovable (Aerotermia) -->
+            <div class="bg-white dark:bg-slate-800/60 p-6 rounded-2xl border border-emerald-200 dark:border-emerald-500/30 shadow-sm">
+                <h3 class="text-emerald-700 dark:text-emerald-400 font-bold text-sm uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                    Justificación Energía Renovable (Aerotermia - CTE DB-HE)
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
+                    <div>
+                        <label class="block text-[10px] text-gray-500 dark:text-slate-400 uppercase font-bold mb-1" title="Demanda total de calefacción (Sensible)">Demanda Invierno (Q)</label>
+                        <div class="bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-700 p-2.5 rounded text-gray-800 dark:text-white font-mono text-sm flex items-center justify-center font-bold h-[42px]" id="ren-demanda">0 W</div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-gray-500 dark:text-slate-400 uppercase font-bold mb-1" title="Seasonal Performance Factor (SCOP de la Bomba de Calor)">Rendimiento (SPF/SCOP)</label>
+                        <input type="number" id="ren-spf" value="3.5" step="0.1" oninput="triggerCalculate();" class="w-full bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-700 focus:outline-none focus:border-emerald-500 p-2.5 rounded text-gray-800 dark:text-slate-200 text-sm font-mono text-center transition-colors h-[42px]">
+                        <div id="spf-alert" class="text-[9px] text-emerald-600 dark:text-emerald-400 mt-1 h-3 transition-colors">✓ Válido Renovable (SPF > 2.5)</div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-gray-500 dark:text-slate-400 uppercase font-bold mb-1" title="Porcentaje de la demanda que se considera energía renovable">Cuota Renovable (%)</label>
+                        <div class="bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-700 p-2.5 rounded text-emerald-600 dark:text-emerald-400 font-mono text-sm flex items-center justify-center font-bold h-[42px]" id="ren-pct">0.0 %</div>
+                    </div>
+                    <div class="bg-emerald-100 dark:bg-emerald-900/40 border border-emerald-300 dark:border-emerald-500/50 p-2.5 rounded-xl text-center shadow-inner relative overflow-hidden h-[60px] flex flex-col justify-center">
+                        <div class="absolute inset-0 bg-emerald-500/5 dark:bg-emerald-500/10 animate-pulse"></div>
+                        <label class="block text-[9px] text-emerald-800 dark:text-emerald-300 uppercase tracking-widest font-bold mb-0.5 relative z-10">Energía Aportada (E_res)</label>
+                        <div class="text-xl font-black text-emerald-900 dark:text-white font-mono tracking-tighter relative z-10 leading-none" id="ren-w">0 <span class="text-xs font-normal text-emerald-700 dark:text-emerald-200">W</span></div>
+                    </div>
+                </div>
+                <p class="text-[9px] text-gray-500 dark:text-slate-500 mt-4 font-mono italic">* Ecuación Directiva Europea (Decisión 2013/114/UE): E_res = Q_usable · (1 - 1/SPF). Solo se considera energía renovable (Aerotermia) si SPF > 2.5</p>
+            </div>
         </div>
 
     </main>
@@ -535,7 +600,20 @@
             if(method === 'simplified') calculateSimplifiedMethod();
         }
 
+        // Anti-XSS (Escapar texto inyectado en innerHTML)
+        function escapeHTML(str) {
+            return String(str).replace(/[&<>'"]/g, function(tag) {
+                const charsToReplace = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
+                return charsToReplace[tag] || tag;
+            });
+        }
+
         // LÓGICA CÁLCULO SIMPLIFICADO (MÉTODO ALPINO)
+        function triggerSimplifiedCalculate() {
+            calculateSimplifiedMethod();
+            if(!isRestoring) saveProjectToStorage();
+        }
+
         function calculateSimplifiedMethod() {
             const area = parseFloat(document.getElementById('simp-area').value) || 0;
             const age = document.getElementById('simp-age').value;
@@ -647,14 +725,14 @@
             const tr = document.createElement('tr');
             tr.className = "border-b border-slate-200 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/20 transition-colors";
             tr.innerHTML = `
-                <td class="p-2"><input type="text" value="${desc}" class="row-desc" oninput="triggerCalculate()"></td>
+                <td class="p-2"><input type="text" value="${escapeHTML(desc)}" class="row-desc w-full bg-transparent focus:outline-none p-1 text-xs text-gray-800 dark:text-slate-200" oninput="triggerCalculate()"></td>
                 <td class="p-2 text-center relative">
                     <select class="w-full bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-600 rounded p-1 text-[11px] font-bold text-gray-800 dark:text-slate-300 row-type-v outline-none focus:border-orange-500 transition-colors" onchange="updateRowHintsV(this)">${tiposVerano}</select>
                     <div class="load-type-badges mt-1 flex justify-center gap-1"></div>
                 </td>
-                <td class="p-2"><input type="number" step="any" value="${cant}" class="row-cant text-center font-mono" oninput="triggerCalculate()"></td>
-                <td class="p-2"><input type="number" step="any" value="${val1}" class="row-val1 text-center font-mono" oninput="triggerCalculate()"></td>
-                <td class="p-2"><input type="number" step="any" value="${val2}" class="row-val2 text-center font-mono" oninput="triggerCalculate()"></td>
+                <td class="p-2"><input type="number" step="any" value="${cant}" class="row-cant text-center font-mono w-full bg-transparent focus:outline-none text-xs" oninput="triggerCalculate()"></td>
+                <td class="p-2"><input type="number" step="any" value="${val1}" class="row-val1 text-center font-mono w-full bg-transparent focus:outline-none text-xs" oninput="triggerCalculate()"></td>
+                <td class="p-2"><input type="number" step="any" value="${val2}" class="row-val2 text-center font-mono w-full bg-transparent focus:outline-none text-xs" oninput="triggerCalculate()"></td>
                 <td class="p-2 text-right font-mono font-bold text-orange-600 dark:text-orange-400 row-res-s text-base">0</td>
                 <td class="p-2 text-right font-mono font-bold text-teal-600 dark:text-teal-400 row-res-l text-base transition-opacity duration-300">0</td>
                 <td class="p-2 text-center no-print"><button onclick="this.closest('tr').remove(); triggerCalculate()" class="text-slate-400 hover:text-red-500 font-bold p-1">✕</button></td>
@@ -720,14 +798,14 @@
             const tr = document.createElement('tr');
             tr.className = "border-b border-slate-200 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/20 transition-colors";
             tr.innerHTML = `
-                <td class="p-2"><input type="text" value="${desc}" class="row-desc" oninput="triggerCalculate()"></td>
+                <td class="p-2"><input type="text" value="${escapeHTML(desc)}" class="row-desc w-full bg-transparent focus:outline-none p-1 text-xs text-gray-800 dark:text-slate-200" oninput="triggerCalculate()"></td>
                 <td class="p-2 text-center relative">
                     <select class="w-full bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-600 rounded p-1 text-[11px] font-bold text-gray-800 dark:text-slate-300 row-type-i outline-none focus:border-blue-500 transition-colors" onchange="updateRowHintsI(this)">${tiposInvierno}</select>
                     <div class="mt-1 flex justify-center"><span class="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded text-[8px] font-bold tracking-widest border border-blue-200 dark:border-blue-800 shadow-sm">PÉRDIDA SENS.</span></div>
                 </td>
-                <td class="p-2"><input type="number" step="any" value="${cant}" class="row-cant text-center font-mono" oninput="triggerCalculate()"></td>
-                <td class="p-2"><input type="number" step="any" value="${u}" class="row-u text-center font-mono" oninput="triggerCalculate()"></td>
-                <td class="p-2"><input type="number" step="any" value="${dt}" class="row-dt text-center font-mono" oninput="triggerCalculate()"></td>
+                <td class="p-2"><input type="number" step="any" value="${cant}" class="row-cant text-center font-mono w-full bg-transparent focus:outline-none text-xs" oninput="triggerCalculate()"></td>
+                <td class="p-2"><input type="number" step="any" value="${u}" class="row-u text-center font-mono w-full bg-transparent focus:outline-none text-xs" oninput="triggerCalculate()"></td>
+                <td class="p-2"><input type="number" step="any" value="${dt}" class="row-dt text-center font-mono w-full bg-gray-100 dark:bg-slate-800/50 border border-transparent rounded focus:outline-none text-xs" oninput="triggerCalculate()"></td>
                 <td class="p-2 text-right font-mono font-bold text-blue-600 dark:text-blue-400 row-res-s text-base">0</td>
                 <td class="p-2 text-center no-print"><button onclick="this.closest('tr').remove(); triggerCalculate()" class="text-slate-400 hover:text-red-500 font-bold p-1">✕</button></td>
             `;
@@ -863,8 +941,119 @@
             document.getElementById('res-i-total-kw').innerHTML = (sumISens/1000).toFixed(2) + ' <span class="text-sm text-slate-500">kW</span>';
             document.getElementById('res-i-kcal').innerText = Math.round(sumISens * 0.86) + ' kcal/h';
             
-            // Actualizar también el método simplificado en paralelo
-            calculateSimplifiedMethod();
+            calculateAirflow();
+            calculateRenewable();
+        }
+
+        function onSeasonChange() {
+            let season = document.getElementById('dim-season').value;
+            let tLocInput = document.getElementById('dim-tloc');
+            let tImpInput = document.getElementById('dim-timp');
+            
+            if (season === 'verano') {
+                tLocInput.value = 24; 
+                tImpInput.value = 12; 
+            } else {
+                tLocInput.value = 21; 
+                tImpInput.value = 35; 
+            }
+            
+            triggerCalculate();
+        }
+
+        function calculateAirflow() {
+            let season = document.getElementById('dim-season')?.value || 'verano';
+            let qs = 0;
+            
+            if (season === 'verano') {
+                const vsens = document.getElementById('tot-v-sens');
+                qs = vsens ? parseFloat(vsens.innerText) : 0;
+            } else {
+                const isens = document.getElementById('tot-i-sens');
+                qs = isens ? parseFloat(isens.innerText) : 0;
+            }
+            
+            if(document.getElementById('dim-qs')) document.getElementById('dim-qs').innerText = (qs || 0).toFixed(0) + ' W';
+            
+            let tLocInput = document.getElementById('dim-tloc');
+            let tImpInput = document.getElementById('dim-timp');
+            let tLocAlert = document.getElementById('tloc-alert');
+            let timpAlert = document.getElementById('timp-alert');
+            
+            if(!tLocInput || !tImpInput) return;
+
+            let tLoc = parseFloat(tLocInput.value) || 24;
+            let tImp = parseFloat(tImpInput.value) || 12;
+            
+            if (season === 'verano') {
+                if (tLoc < 23 || tLoc > 25) {
+                    tLocInput.classList.add('border-red-500', 'text-red-400', 'bg-red-950/30');
+                    tLocAlert.className = 'text-[9px] text-red-400 mt-1 h-3 font-bold transition-colors';
+                    tLocAlert.innerText = '❌ Fuera límite RITE Verano (23-25°C)';
+                } else {
+                    tLocInput.classList.remove('border-red-500', 'text-red-400', 'bg-red-950/30');
+                    tLocAlert.className = 'text-[9px] text-emerald-600 dark:text-emerald-400 mt-1 h-3 transition-colors';
+                    tLocAlert.innerText = '✓ RITE IT 1.1 Cumplido';
+                }
+            } else { 
+                if (tLoc < 21 || tLoc > 23) {
+                    tLocInput.classList.add('border-red-500', 'text-red-400', 'bg-red-950/30');
+                    tLocAlert.className = 'text-[9px] text-red-400 mt-1 h-3 font-bold transition-colors';
+                    tLocAlert.innerText = '❌ Fuera límite RITE Invierno (21-23°C)';
+                } else {
+                    tLocInput.classList.remove('border-red-500', 'text-red-400', 'bg-red-950/30');
+                    tLocAlert.className = 'text-[9px] text-emerald-600 dark:text-emerald-400 mt-1 h-3 transition-colors';
+                    tLocAlert.innerText = '✓ RITE IT 1.1 Cumplido';
+                }
+            }
+
+            let dt = season === 'verano' ? (tLoc - tImp) : (tImp - tLoc);
+            
+            if (dt > 15 && season === 'invierno') {
+                timpAlert.innerText = '⚠️ ΔT Calefacción > 15°C';
+            } else if (dt > 12 && season === 'verano') {
+                timpAlert.innerText = '⚠️ ΔT Frío > 12°C';
+            } else if (dt <= 0) {
+                timpAlert.innerText = '❌ T.Imp incorrecta';
+            } else {
+                timpAlert.innerText = '✓ ΔT Adecuado';
+            }
+
+            let caudal = 0;
+            if (dt > 0 && qs > 0) caudal = qs / (0.34 * dt);
+            
+            if(document.getElementById('dim-caudal')) document.getElementById('dim-caudal').innerHTML = caudal.toFixed(0) + ' <span class="text-xs font-normal text-blue-700 dark:text-blue-200">m³/h</span>';
+        }
+
+        function calculateRenewable() {
+            let isens = document.getElementById('tot-i-sens');
+            let qInvierno = isens ? parseFloat(isens.innerText) : 0;
+            
+            if(document.getElementById('ren-demanda')) document.getElementById('ren-demanda').innerText = (qInvierno || 0).toFixed(0) + ' W';
+
+            let spfInput = document.getElementById('ren-spf');
+            let spfAlert = document.getElementById('spf-alert');
+            
+            if(!spfInput || !spfAlert) return;
+
+            let spf = parseFloat(spfInput.value) || 0;
+            let eRes = 0;
+            let pct = 0;
+
+            if (spf > 2.5) {
+                spfInput.classList.remove('border-red-500', 'text-red-400', 'bg-red-950/30');
+                spfAlert.innerText = '✓ Válido Renovable (SPF > 2.5)';
+                pct = (1 - (1 / spf)) * 100;
+                eRes = qInvierno * (1 - (1 / spf));
+            } else {
+                spfInput.classList.add('border-red-500', 'text-red-400', 'bg-red-950/30');
+                spfAlert.innerText = '❌ No computa (SPF ≤ 2.5)';
+                pct = 0;
+                eRes = 0;
+            }
+
+            if(document.getElementById('ren-pct')) document.getElementById('ren-pct').innerText = pct.toFixed(1) + ' %';
+            if(document.getElementById('ren-w')) document.getElementById('ren-w').innerHTML = eRes.toFixed(0) + ' <span class="text-xs font-normal text-emerald-700 dark:text-emerald-200">W</span>';
         }
 
         // --- FUNCIONES DE GUARDADO Y EXPORTACIÓN ---
