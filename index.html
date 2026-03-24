@@ -103,11 +103,21 @@
             border-bottom-color: #3b82f6;
         }
 
+        .view-toggle-btn {
+            transition: all 0.3s ease;
+        }
+        .view-toggle-btn.active {
+            background-color: var(--accent-base);
+            color: white;
+            border-color: var(--accent-base);
+        }
+
         @media print {
             .no-print { display: none !important; }
             body { background: white; color: black; }
             .glass-card { box-shadow: none; border: 1px solid #ccc; margin-bottom: 20px;}
             .tab-content { display: block !important; } /* Mostrar ambas tablas al imprimir */
+            .thermal-view-section { display: block !important; } /* Al imprimir, mostrar ambos métodos térmicos si es necesario o solo el activo */
         }
     </style>
 </head>
@@ -127,7 +137,7 @@
                         HDS Thermal Load Designer
                         <span id="save-indicator" class="text-[9px] font-normal text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full opacity-0 transition-opacity">Guardado ✓</span>
                     </h1>
-                    <p class="text-amber-400 font-bold text-[10px] uppercase tracking-widest">Cálculo Avanzado: Sensible vs Latente</p>
+                    <p class="text-amber-400 font-bold text-[10px] uppercase tracking-widest">Cálculo Normativo (CTE) y Método Simplificado (Alpino)</p>
                 </div>
             </div>
             <div class="flex flex-wrap gap-2 items-center">
@@ -149,198 +159,321 @@
 
     <main class="max-w-7xl mx-auto px-4 mt-8 space-y-8">
         
-        <!-- 1. CONDICIONES DE DISEÑO -->
-        <section class="glass-card p-6">
-            <h2 class="text-sm font-black uppercase tracking-widest mb-6 flex items-center gap-2 text-amber-500">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" /></svg>
-                1. Condiciones de Diseño
-            </h2>
+        <!-- Toggle Superior de Metodología de Cálculo -->
+        <div class="flex justify-center mb-8 no-print">
+            <div class="bg-gray-200 dark:bg-slate-800 p-1 rounded-xl inline-flex shadow-inner">
+                <button onclick="switchThermalMethod('detailed')" id="btn-method-detailed" class="view-toggle-btn active px-6 py-2 rounded-lg text-sm font-bold text-gray-700 dark:text-slate-300">
+                    📊 Cálculo Detallado (Normativo CTE)
+                </button>
+                <button onclick="switchThermalMethod('simplified')" id="btn-method-simplified" class="view-toggle-btn px-6 py-2 rounded-lg text-sm font-bold text-gray-700 dark:text-slate-300">
+                    ⚡ Cálculo Simplificado (Método Alpino Clima)
+                </button>
+            </div>
+        </div>
+
+        <!-- ========================================================= -->
+        <!-- SECCIÓN 1: CÁLCULO SIMPLIFICADO (MÉTODO ALPINO CLIMA)     -->
+        <!-- ========================================================= -->
+        <div id="thermal-simplified-section" class="thermal-view-section hidden space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Verano -->
-                <div class="space-y-4 p-5 bg-orange-500/5 rounded-xl border border-orange-500/20">
-                    <h3 class="text-xs font-black text-orange-500 uppercase border-b border-orange-500/20 pb-2 mb-4">Refrigeración (Verano)</h3>
-                    <div class="grid grid-cols-3 gap-4">
-                        <div>
-                            <label class="label-tech">T. Ext. Diseño (°C)</label>
-                            <input type="number" id="v-ext-t" value="34" oninput="triggerCalculate()" class="text-orange-500 font-bold">
-                        </div>
-                        <div>
-                            <label class="label-tech">T. Int. Consigna (°C)</label>
-                            <input type="number" id="v-int-t" value="25" oninput="triggerCalculate()">
-                        </div>
-                        <div>
-                            <label class="label-tech">Δw Humedad (g/kg)</label>
-                            <input type="number" id="v-dw" value="5" step="0.1" oninput="triggerCalculate()" title="Diferencia de humedad específica ext-int">
-                        </div>
+            <div class="glass-card p-8 border-t-4 border-t-blue-500">
+                <div class="flex items-start gap-6 mb-8">
+                    <div class="bg-blue-100 dark:bg-blue-900/30 p-4 rounded-2xl border border-blue-200 dark:border-blue-500/30 shadow-inner flex-shrink-0">
+                        <span class="text-4xl">🏔️</span>
                     </div>
-                </div>
-
-                <!-- Invierno -->
-                <div class="space-y-4 p-5 bg-blue-500/5 rounded-xl border border-blue-500/20">
-                    <h3 class="text-xs font-black text-blue-500 uppercase border-b border-blue-500/20 pb-2 mb-4">Calefacción (Invierno)</h3>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="label-tech">T. Ext. Diseño (°C)</label>
-                            <input type="number" id="i-ext-t" value="2" oninput="triggerCalculate()" class="text-blue-500 font-bold">
-                        </div>
-                        <div>
-                            <label class="label-tech">T. Int. Consigna (°C)</label>
-                            <input type="number" id="i-int-t" value="21" oninput="triggerCalculate()">
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 2. TABLAS DE CARGAS (TABS) -->
-        <section class="glass-card overflow-hidden">
-            <!-- Navegación Tabs -->
-            <div class="flex border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 no-print">
-                <button onclick="switchTab('verano')" id="btn-verano" class="tab-btn active-verano flex-1 py-4 text-sm font-black uppercase tracking-widest flex items-center justify-center gap-2">
-                    ☀️ Cargas de Verano
-                </button>
-                <button onclick="switchTab('invierno')" id="btn-invierno" class="tab-btn flex-1 py-4 text-sm font-black uppercase tracking-widest flex items-center justify-center gap-2">
-                    ❄️ Cargas de Invierno
-                </button>
-            </div>
-
-            <!-- TAB: VERANO -->
-            <div id="tab-verano" class="tab-content block">
-                <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-center gap-4 bg-orange-50 dark:bg-orange-900/10">
-                    <p class="text-xs text-orange-600 dark:text-orange-400 font-semibold">Cálculo de ganancias por transmisión, radiación solar, ventilación y cargas internas.</p>
-                    <div class="flex gap-2 no-print shrink-0">
-                        <button onclick="confirmReset('verano')" class="text-[10px] font-bold uppercase px-3 py-2 bg-red-500/10 text-red-500 rounded hover:bg-red-500 hover:text-white transition-all">Limpiar</button>
-                        <button onclick="addRowVerano()" class="text-[10px] font-bold uppercase px-3 py-2 bg-orange-500 text-white rounded shadow hover:bg-orange-600 transition-all">+ Fila Verano</button>
-                    </div>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse min-w-[800px]">
-                        <thead class="bg-slate-100 dark:bg-slate-800 text-[10px] font-black uppercase text-slate-500 tracking-wider">
-                            <tr>
-                                <th class="p-3 border-b dark:border-slate-700">Elemento</th>
-                                <th class="p-3 border-b dark:border-slate-700 w-48">Tipo de Carga</th>
-                                <th class="p-3 border-b dark:border-slate-700 w-24">Cant / Área</th>
-                                <th class="p-3 border-b dark:border-slate-700 w-28" title="Transmisión(U), Radiación(Irr), Interna(W), Ocupantes(W-sens)">U / Irr / W_s</th>
-                                <th class="p-3 border-b dark:border-slate-700 w-28" title="Transmisión(CLTD), Radiación(FS), Interna(W-lat)">CLTD/ΔT/FS/W_l</th>
-                                <th class="p-3 border-b dark:border-slate-700 text-right w-28 bg-orange-50/50 dark:bg-orange-900/20">Sensible (W)</th>
-                                <th class="p-3 border-b dark:border-slate-700 text-right w-28 bg-teal-50/50 dark:bg-teal-900/20">Latente (W)</th>
-                                <th class="p-3 border-b dark:border-slate-700 w-10 no-print"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbody-verano" class="text-sm">
-                            <!-- Filas dinámicas Verano -->
-                        </tbody>
-                        <tfoot class="bg-slate-900 text-white font-bold technical-font">
-                            <tr>
-                                <td colspan="5" class="p-4 text-right uppercase tracking-widest text-slate-400">Totales Verano:</td>
-                                <td id="tot-v-sens" class="p-4 text-right text-orange-400 text-lg">0 W</td>
-                                <td id="tot-v-lat" class="p-4 text-right text-teal-400 text-lg">0 W</td>
-                                <td class="no-print"></td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </div>
-
-            <!-- TAB: INVIERNO -->
-            <div id="tab-invierno" class="tab-content hidden">
-                <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-center gap-4 bg-blue-50 dark:bg-blue-900/10">
-                    <p class="text-xs text-blue-600 dark:text-blue-400 font-semibold">Cálculo de pérdidas térmicas. Soporta espacios no calefactados con ΔT manual.</p>
-                    <div class="flex gap-2 no-print shrink-0">
-                        <button onclick="confirmReset('invierno')" class="text-[10px] font-bold uppercase px-3 py-2 bg-red-500/10 text-red-500 rounded hover:bg-red-500 hover:text-white transition-all">Limpiar</button>
-                        <button onclick="addRowInvierno()" class="text-[10px] font-bold uppercase px-3 py-2 bg-blue-500 text-white rounded shadow hover:bg-blue-600 transition-all">+ Fila Invierno</button>
-                    </div>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse min-w-[700px]">
-                        <thead class="bg-slate-100 dark:bg-slate-800 text-[10px] font-black uppercase text-slate-500 tracking-wider">
-                            <tr>
-                                <th class="p-3 border-b dark:border-slate-700">Elemento</th>
-                                <th class="p-3 border-b dark:border-slate-700 w-56">Tipo de Pérdida</th>
-                                <th class="p-3 border-b dark:border-slate-700 w-28">Área / Caudal</th>
-                                <th class="p-3 border-b dark:border-slate-700 w-28">U / Coef</th>
-                                <th class="p-3 border-b dark:border-slate-700 w-28">ΔT (K)</th>
-                                <th class="p-3 border-b dark:border-slate-700 text-right w-36 bg-blue-50/50 dark:bg-blue-900/20">Pérdida Sens. (W)</th>
-                                <th class="p-3 border-b dark:border-slate-700 w-10 no-print"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbody-invierno" class="text-sm">
-                            <!-- Filas dinámicas Invierno -->
-                        </tbody>
-                        <tfoot class="bg-slate-900 text-white font-bold technical-font">
-                            <tr>
-                                <td colspan="5" class="p-4 text-right uppercase tracking-widest text-slate-400">Total Invierno:</td>
-                                <td id="tot-i-sens" class="p-4 text-right text-blue-400 text-lg">0 W</td>
-                                <td class="no-print"></td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </div>
-        </section>
-
-        <!-- 3. RESUMEN EJECUTIVO -->
-        <section class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <!-- Resumen Verano -->
-            <div class="glass-card p-6 border-l-4 border-l-orange-500 relative overflow-hidden">
-                <div class="absolute top-0 right-0 p-4 opacity-10">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                </div>
-                <h3 class="text-orange-500 font-black uppercase text-xs mb-4 tracking-tighter">Resultados Refrigeración (Verano)</h3>
-                
-                <div class="grid grid-cols-2 gap-4 mb-4">
-                    <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded border border-slate-100 dark:border-slate-700">
-                        <p class="text-[10px] uppercase text-slate-500">Carga Sensible</p>
-                        <p class="font-bold text-orange-500" id="res-v-sens-w">0 W</p>
-                    </div>
-                    <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded border border-slate-100 dark:border-slate-700">
-                        <p class="text-[10px] uppercase text-slate-500">Carga Latente</p>
-                        <p class="font-bold text-teal-500" id="res-v-lat-w">0 W</p>
-                    </div>
-                </div>
-
-                <div class="flex justify-between items-end border-t border-slate-200 dark:border-slate-700 pt-4">
                     <div>
-                        <p class="text-[10px] text-slate-500 uppercase mb-1">Carga Total de Refrigeración</p>
-                        <p class="text-4xl font-black technical-font" id="res-v-total-kw">0.00 <span class="text-sm font-normal text-slate-500">kW</span></p>
+                        <h2 class="text-xl font-bold text-blue-700 dark:text-blue-400 tracking-tight uppercase">Método Empírico Alpino Clima / Junkers</h2>
+                        <p class="text-gray-600 dark:text-slate-400 text-sm mt-2 leading-relaxed">Este método de estimación rápida es ideal para viviendas o locales sencillos sin la complejidad técnica del CTE. Se basa en una <strong>carga térmica base por m²</strong> corregida por factores de zona climática, orientación solar y nivel de cerramientos exteriores.</p>
                     </div>
-                    <div class="text-right space-y-1">
-                        <p class="text-lg font-bold text-slate-700 dark:text-slate-300" id="res-v-frig">0 fg/h</p>
-                        <p class="text-xs font-bold text-amber-500 bg-amber-500/10 px-2 py-1 rounded" id="res-v-fcs">FCS: 0.00</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    
+                    <!-- Formulario de Entrada Simplificado -->
+                    <div class="lg:col-span-2 bg-gray-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-inner">
+                        <h3 class="text-sm font-bold text-gray-800 dark:text-slate-300 uppercase tracking-widest mb-6 border-b border-gray-200 dark:border-slate-700 pb-2">Parámetros del Recinto</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="label-tech" title="Superficie útil del recinto a climatizar">Superficie a climatizar (m²)</label>
+                                <input type="number" id="simp-area" value="100" oninput="calculateSimplifiedMethod()" class="w-full font-mono text-lg font-bold text-blue-600 dark:text-blue-400 border border-gray-300 dark:border-slate-600 focus:border-blue-500 bg-white dark:bg-slate-900 p-3 rounded-lg outline-none transition-colors">
+                            </div>
+                            
+                            <div>
+                                <label class="label-tech" title="Determina la carga base en W/m²">Antigüedad / Nivel de Aislamiento</label>
+                                <select id="simp-age" onchange="calculateSimplifiedMethod()" class="w-full bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-600 p-3 rounded-lg text-gray-800 dark:text-slate-200 text-sm font-semibold outline-none focus:border-blue-500 cursor-pointer">
+                                    <option value="nuevo">Vivienda Nueva / Bien Aislada (Post-CTE)</option>
+                                    <option value="medio" selected>Vivienda Media (Aislamiento básico)</option>
+                                    <option value="antiguo">Vivienda Antigua / Sin Aislar (Pre-1980)</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="label-tech" title="Factor F1 (Según mapa climático CTE)">Zona Climática (CTE)</label>
+                                <select id="simp-zone" onchange="calculateSimplifiedMethod()" class="w-full bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-600 p-3 rounded-lg text-gray-800 dark:text-slate-200 text-sm font-semibold outline-none focus:border-blue-500 cursor-pointer">
+                                    <option value="A">Zona A (Muy cálida en verano / Suave invierno)</option>
+                                    <option value="B" selected>Zona B (Cálida / Mediterráneo Costa)</option>
+                                    <option value="C">Zona C (Templada / Interior-Costa)</option>
+                                    <option value="D">Zona D (Fría en invierno / Mediterráneo Int.)</option>
+                                    <option value="E">Zona E (Muy fría en invierno / Montaña)</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="label-tech" title="Factor F2 (Protección solar)">Exposición Solar Principal (Factor F2)</label>
+                                <select id="simp-sun" onchange="calculateSimplifiedMethod()" class="w-full bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-600 p-3 rounded-lg text-gray-800 dark:text-slate-200 text-sm font-semibold outline-none focus:border-blue-500 cursor-pointer">
+                                    <option value="sol" selected>Exposición normal o Soleada (Sur/Oeste)</option>
+                                    <option value="sombra">En zona de sombra o Norte</option>
+                                </select>
+                            </div>
+
+                            <div class="md:col-span-2">
+                                <label class="label-tech" title="Factor F3 (Disipación térmica)">Paredes al exterior y Cubiertas (Factor F3)</label>
+                                <select id="simp-walls" onchange="calculateSimplifiedMethod()" class="w-full bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-600 p-3 rounded-lg text-gray-800 dark:text-slate-200 text-sm font-semibold outline-none focus:border-blue-500 cursor-pointer">
+                                    <option value="pocas" selected>2 o menos paredes al exterior (Piso intermedio)</option>
+                                    <option value="muchas">Más de 2 paredes al exterior, o bajo cubierta / chalet</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Info Ecuación -->
+                        <div class="mt-6 bg-blue-100/50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 rounded-xl text-xs text-gray-600 dark:text-slate-400 font-mono">
+                            <span class="font-bold text-blue-600 dark:text-blue-400">Ecuación Base:</span> Q = Superficie(m²) × Carga Base(W/m²) × F1(Zona) × F2(Sombra) × F3(Paredes) × 1.1(Margen de Seguridad)
+                        </div>
+                    </div>
+
+                    <!-- Tarjetas de Resultados Simplificados -->
+                    <div class="space-y-6">
+                        <!-- Invierno -->
+                        <div class="bg-white dark:bg-slate-800 border-l-4 border-l-blue-500 border-y border-r border-gray-200 dark:border-slate-700 p-6 rounded-2xl shadow-lg relative overflow-hidden">
+                            <div class="absolute -right-4 -top-4 opacity-5 dark:opacity-10 text-blue-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-32 w-32" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.25a.75.75 0 01.75.75v3.13l1.83-1.83a.75.75 0 111.06 1.06L13.12 7.88A.75.75 0 0112 8.25a.75.75 0 01-1.12-.22L8.36 5.51a.75.75 0 011.06-1.06l1.83 1.83V3a.75.75 0 01.75-.75z"/></svg>
+                            </div>
+                            <h4 class="text-blue-600 dark:text-blue-400 font-black uppercase text-xs mb-2 tracking-widest relative z-10">Potencia de Calefacción</h4>
+                            <p class="text-[10px] text-gray-500 dark:text-slate-500 mb-4 relative z-10">Cálculo estimado + 10% margen caldera.</p>
+                            
+                            <div class="relative z-10">
+                                <div id="simp-res-heat-w" class="text-4xl font-black font-mono text-gray-800 dark:text-white tracking-tighter">0 <span class="text-sm font-normal text-gray-500 dark:text-slate-400">W</span></div>
+                                <div id="simp-res-heat-kcal" class="text-sm font-bold text-gray-600 dark:text-slate-400 font-mono mt-1">0 kcal/h</div>
+                            </div>
+                        </div>
+
+                        <!-- Verano -->
+                        <div class="bg-white dark:bg-slate-800 border-l-4 border-l-orange-500 border-y border-r border-gray-200 dark:border-slate-700 p-6 rounded-2xl shadow-lg relative overflow-hidden">
+                            <div class="absolute -right-4 -top-4 opacity-5 dark:opacity-10 text-orange-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-32 w-32" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0z"/></svg>
+                            </div>
+                            <h4 class="text-orange-600 dark:text-orange-500 font-black uppercase text-xs mb-2 tracking-widest relative z-10">Potencia de Refrigeración</h4>
+                            <p class="text-[10px] text-gray-500 dark:text-slate-500 mb-4 relative z-10">Cálculo estimado + 10% margen equipo.</p>
+                            
+                            <div class="relative z-10">
+                                <div id="simp-res-cool-w" class="text-4xl font-black font-mono text-gray-800 dark:text-white tracking-tighter">0 <span class="text-sm font-normal text-gray-500 dark:text-slate-400">W</span></div>
+                                <div id="simp-res-cool-fg" class="text-sm font-bold text-gray-600 dark:text-slate-400 font-mono mt-1">0 fg/h</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Resumen Invierno -->
-            <div class="glass-card p-6 border-l-4 border-l-blue-500 relative overflow-hidden">
-                <div class="absolute top-0 right-0 p-4 opacity-10">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707" /></svg>
-                </div>
-                <h3 class="text-blue-500 font-black uppercase text-xs mb-4 tracking-tighter">Resultados Calefacción (Invierno)</h3>
+        <!-- ========================================================= -->
+        <!-- SECCIÓN 2: CÁLCULO DETALLADO (NORMATIVO CTE / RITE)       -->
+        <!-- ========================================================= -->
+        <div id="thermal-detailed-section" class="thermal-view-section block space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            
+            <!-- 1. CONDICIONES DE DISEÑO -->
+            <section class="glass-card p-6">
+                <h2 class="text-sm font-black uppercase tracking-widest mb-6 flex items-center gap-2 text-amber-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" /></svg>
+                    1. Condiciones de Diseño (Estudio Normativo)
+                </h2>
                 
-                <div class="grid grid-cols-2 gap-4 mb-4">
-                    <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded border border-slate-100 dark:border-slate-700">
-                        <p class="text-[10px] uppercase text-slate-500">Pérdidas Transmisión</p>
-                        <p class="font-bold text-blue-500" id="res-i-trans-w">0 W</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Verano -->
+                    <div class="space-y-4 p-5 bg-orange-500/5 rounded-xl border border-orange-500/20">
+                        <h3 class="text-xs font-black text-orange-500 uppercase border-b border-orange-500/20 pb-2 mb-4">Refrigeración (Verano)</h3>
+                        <div class="grid grid-cols-3 gap-4">
+                            <div>
+                                <label class="label-tech">T. Ext. Diseño (°C)</label>
+                                <input type="number" id="v-ext-t" value="34" oninput="triggerCalculate()" class="text-orange-500 font-bold">
+                            </div>
+                            <div>
+                                <label class="label-tech">T. Int. Consigna (°C)</label>
+                                <input type="number" id="v-int-t" value="25" oninput="triggerCalculate()">
+                            </div>
+                            <div>
+                                <label class="label-tech">Δw Humedad (g/kg)</label>
+                                <input type="number" id="v-dw" value="5" step="0.1" oninput="triggerCalculate()" title="Diferencia de humedad específica ext-int">
+                            </div>
+                        </div>
                     </div>
-                    <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded border border-slate-100 dark:border-slate-700">
-                        <p class="text-[10px] uppercase text-slate-500">Pérdidas Ventilación</p>
-                        <p class="font-bold text-sky-500" id="res-i-vent-w">0 W</p>
+
+                    <!-- Invierno -->
+                    <div class="space-y-4 p-5 bg-blue-500/5 rounded-xl border border-blue-500/20">
+                        <h3 class="text-xs font-black text-blue-500 uppercase border-b border-blue-500/20 pb-2 mb-4">Calefacción (Invierno)</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="label-tech">T. Ext. Diseño (°C)</label>
+                                <input type="number" id="i-ext-t" value="2" oninput="triggerCalculate()" class="text-blue-500 font-bold">
+                            </div>
+                            <div>
+                                <label class="label-tech">T. Int. Consigna (°C)</label>
+                                <input type="number" id="i-int-t" value="21" oninput="triggerCalculate()">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. TABLAS DE CARGAS (TABS) -->
+            <section class="glass-card overflow-hidden">
+                <!-- Navegación Tabs -->
+                <div class="flex border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 no-print">
+                    <button onclick="switchTab('verano')" id="btn-verano" class="tab-btn active-verano flex-1 py-4 text-sm font-black uppercase tracking-widest flex items-center justify-center gap-2">
+                        ☀️ Cargas de Verano
+                    </button>
+                    <button onclick="switchTab('invierno')" id="btn-invierno" class="tab-btn flex-1 py-4 text-sm font-black uppercase tracking-widest flex items-center justify-center gap-2">
+                        ❄️ Cargas de Invierno
+                    </button>
+                </div>
+
+                <!-- TAB: VERANO -->
+                <div id="tab-verano" class="tab-content block">
+                    <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-center gap-4 bg-orange-50 dark:bg-orange-900/10">
+                        <p class="text-xs text-orange-600 dark:text-orange-400 font-semibold">Cálculo de ganancias por transmisión, radiación solar, ventilación y cargas internas.</p>
+                        <div class="flex gap-2 no-print shrink-0">
+                            <button onclick="confirmReset('verano')" class="text-[10px] font-bold uppercase px-3 py-2 bg-red-500/10 text-red-500 rounded hover:bg-red-500 hover:text-white transition-all">Limpiar</button>
+                            <button onclick="addRowVerano()" class="text-[10px] font-bold uppercase px-3 py-2 bg-orange-500 text-white rounded shadow hover:bg-orange-600 transition-all">+ Fila Verano</button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[800px]">
+                            <thead class="bg-slate-100 dark:bg-slate-800 text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                                <tr>
+                                    <th class="p-3 border-b dark:border-slate-700">Elemento</th>
+                                    <th class="p-3 border-b dark:border-slate-700 w-48">Tipo de Carga</th>
+                                    <th class="p-3 border-b dark:border-slate-700 w-24">Cant / Área</th>
+                                    <th class="p-3 border-b dark:border-slate-700 w-28" title="Transmisión(U), Radiación(Irr), Interna(W), Ocupantes(W-sens)">U / Irr / W_s</th>
+                                    <th class="p-3 border-b dark:border-slate-700 w-28" title="Transmisión(CLTD), Radiación(FS), Interna(W-lat)">CLTD/ΔT/FS/W_l</th>
+                                    <th class="p-3 border-b dark:border-slate-700 text-right w-28 bg-orange-50/50 dark:bg-orange-900/20">Sensible (W)</th>
+                                    <th class="p-3 border-b dark:border-slate-700 text-right w-28 bg-teal-50/50 dark:bg-teal-900/20">Latente (W)</th>
+                                    <th class="p-3 border-b dark:border-slate-700 w-10 no-print"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-verano" class="text-sm">
+                                <!-- Filas dinámicas Verano -->
+                            </tbody>
+                            <tfoot class="bg-slate-900 text-white font-bold technical-font">
+                                <tr>
+                                    <td colspan="5" class="p-4 text-right uppercase tracking-widest text-slate-400">Totales Verano:</td>
+                                    <td id="tot-v-sens" class="p-4 text-right text-orange-400 text-lg">0 W</td>
+                                    <td id="tot-v-lat" class="p-4 text-right text-teal-400 text-lg">0 W</td>
+                                    <td class="no-print"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
                     </div>
                 </div>
 
-                <div class="flex justify-between items-end border-t border-slate-200 dark:border-slate-700 pt-4">
-                    <div>
-                        <p class="text-[10px] text-slate-500 uppercase mb-1">Carga Total de Calefacción</p>
-                        <p class="text-4xl font-black technical-font" id="res-i-total-kw">0.00 <span class="text-sm font-normal text-slate-500">kW</span></p>
+                <!-- TAB: INVIERNO -->
+                <div id="tab-invierno" class="tab-content hidden">
+                    <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-center gap-4 bg-blue-50 dark:bg-blue-900/10">
+                        <p class="text-xs text-blue-600 dark:text-blue-400 font-semibold">Cálculo de pérdidas térmicas. Soporta espacios no calefactados con ΔT manual.</p>
+                        <div class="flex gap-2 no-print shrink-0">
+                            <button onclick="confirmReset('invierno')" class="text-[10px] font-bold uppercase px-3 py-2 bg-red-500/10 text-red-500 rounded hover:bg-red-500 hover:text-white transition-all">Limpiar</button>
+                            <button onclick="addRowInvierno()" class="text-[10px] font-bold uppercase px-3 py-2 bg-blue-500 text-white rounded shadow hover:bg-blue-600 transition-all">+ Fila Invierno</button>
+                        </div>
                     </div>
-                    <div class="text-right">
-                        <p class="text-lg font-bold text-slate-700 dark:text-slate-300" id="res-i-kcal">0 kcal/h</p>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[700px]">
+                            <thead class="bg-slate-100 dark:bg-slate-800 text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                                <tr>
+                                    <th class="p-3 border-b dark:border-slate-700">Elemento</th>
+                                    <th class="p-3 border-b dark:border-slate-700 w-56">Tipo de Pérdida</th>
+                                    <th class="p-3 border-b dark:border-slate-700 w-28">Área / Caudal</th>
+                                    <th class="p-3 border-b dark:border-slate-700 w-28">U / Coef</th>
+                                    <th class="p-3 border-b dark:border-slate-700 w-28">ΔT (K)</th>
+                                    <th class="p-3 border-b dark:border-slate-700 text-right w-36 bg-blue-50/50 dark:bg-blue-900/20">Pérdida Sens. (W)</th>
+                                    <th class="p-3 border-b dark:border-slate-700 w-10 no-print"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-invierno" class="text-sm">
+                                <!-- Filas dinámicas Invierno -->
+                            </tbody>
+                            <tfoot class="bg-slate-900 text-white font-bold technical-font">
+                                <tr>
+                                    <td colspan="5" class="p-4 text-right uppercase tracking-widest text-slate-400">Total Invierno:</td>
+                                    <td id="tot-i-sens" class="p-4 text-right text-blue-400 text-lg">0 W</td>
+                                    <td class="no-print"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
                     </div>
                 </div>
-            </div>
-        </section>
+            </section>
+
+            <!-- 3. RESUMEN EJECUTIVO (DETALLADO) -->
+            <section class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Resumen Verano -->
+                <div class="glass-card p-6 border-l-4 border-l-orange-500 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-4 opacity-10">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                    </div>
+                    <h3 class="text-orange-500 font-black uppercase text-xs mb-4 tracking-tighter">Resultados Refrigeración (Verano)</h3>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded border border-slate-100 dark:border-slate-700">
+                            <p class="text-[10px] uppercase text-slate-500">Carga Sensible</p>
+                            <p class="font-bold text-orange-500" id="res-v-sens-w">0 W</p>
+                        </div>
+                        <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded border border-slate-100 dark:border-slate-700">
+                            <p class="text-[10px] uppercase text-slate-500">Carga Latente</p>
+                            <p class="font-bold text-teal-500" id="res-v-lat-w">0 W</p>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-end border-t border-slate-200 dark:border-slate-700 pt-4">
+                        <div>
+                            <p class="text-[10px] text-slate-500 uppercase mb-1">Carga Total de Refrigeración</p>
+                            <p class="text-4xl font-black technical-font" id="res-v-total-kw">0.00 <span class="text-sm font-normal text-slate-500">kW</span></p>
+                        </div>
+                        <div class="text-right space-y-1">
+                            <p class="text-lg font-bold text-slate-700 dark:text-slate-300" id="res-v-frig">0 fg/h</p>
+                            <p class="text-xs font-bold text-amber-500 bg-amber-500/10 px-2 py-1 rounded" id="res-v-fcs">FCS: 0.00</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resumen Invierno -->
+                <div class="glass-card p-6 border-l-4 border-l-blue-500 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-4 opacity-10">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707" /></svg>
+                    </div>
+                    <h3 class="text-blue-500 font-black uppercase text-xs mb-4 tracking-tighter">Resultados Calefacción (Invierno)</h3>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded border border-slate-100 dark:border-slate-700">
+                            <p class="text-[10px] uppercase text-slate-500">Pérdidas Transmisión</p>
+                            <p class="font-bold text-blue-500" id="res-i-trans-w">0 W</p>
+                        </div>
+                        <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded border border-slate-100 dark:border-slate-700">
+                            <p class="text-[10px] uppercase text-slate-500">Pérdidas Ventilación</p>
+                            <p class="font-bold text-sky-500" id="res-i-vent-w">0 W</p>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-end border-t border-slate-200 dark:border-slate-700 pt-4">
+                        <div>
+                            <p class="text-[10px] text-slate-500 uppercase mb-1">Carga Total de Calefacción</p>
+                            <p class="text-4xl font-black technical-font" id="res-i-total-kw">0.00 <span class="text-sm font-normal text-slate-500">kW</span></p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-lg font-bold text-slate-700 dark:text-slate-300" id="res-i-kcal">0 kcal/h</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
 
     </main>
 
@@ -367,7 +500,66 @@
             localStorage.setItem('hds_theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
         }
 
-        // LÓGICA DE PESTAÑAS (TABS)
+        // LÓGICA DE VISTAS (DETALLADO VS SIMPLIFICADO)
+        function switchThermalMethod(method) {
+            document.getElementById('thermal-detailed-section').classList.add('hidden');
+            document.getElementById('thermal-simplified-section').classList.add('hidden');
+            document.getElementById('btn-method-detailed').classList.remove('active');
+            document.getElementById('btn-method-simplified').classList.remove('active');
+            
+            document.getElementById(`thermal-${method}-section`).classList.remove('hidden');
+            document.getElementById(`btn-method-${method}`).classList.add('active');
+
+            if(method === 'simplified') calculateSimplifiedMethod();
+        }
+
+        // LÓGICA CÁLCULO SIMPLIFICADO (MÉTODO ALPINO)
+        function calculateSimplifiedMethod() {
+            const area = parseFloat(document.getElementById('simp-area').value) || 0;
+            const age = document.getElementById('simp-age').value;
+            const zone = document.getElementById('simp-zone').value;
+            const sun = document.getElementById('simp-sun').value;
+            const walls = document.getElementById('simp-walls').value;
+
+            // 1. Establecer Cargas Base por m² (W/m²)
+            let baseHeating = 85; // Medio
+            if(age === 'nuevo') baseHeating = 60;
+            if(age === 'antiguo') baseHeating = 110;
+
+            let baseCooling = 100; // Medio
+            if(age === 'nuevo') baseCooling = 80;
+            if(age === 'antiguo') baseCooling = 120;
+
+            // 2. Factores Invierno (Calefacción)
+            // Zonas frías suben la demanda de calefacción
+            const f1_h = {'A': 0.8, 'B': 0.9, 'C': 1.0, 'D': 1.1, 'E': 1.2}[zone];
+            const f2_h = sun === 'sombra' ? 1.15 : 1.0; // En sombra hace más frío
+            const f3_h = walls === 'muchas' ? 1.20 : 1.0; // Más pérdidas
+
+            const qHeating = area * baseHeating * f1_h * f2_h * f3_h;
+            const qHeatingTotal = qHeating * 1.10; // +10% margen para la caldera
+
+            // 3. Factores Verano (Refrigeración)
+            // Zonas cálidas suben la demanda de frío
+            const f1_c = {'A': 1.2, 'B': 1.1, 'C': 1.0, 'D': 0.9, 'E': 0.8}[zone];
+            const f2_c = sun === 'sombra' ? 0.85 : 1.15; // En sombra hace menos calor
+            const f3_c = walls === 'muchas' ? 1.20 : 1.0; // Mayor ganancia por muros
+
+            const qCooling = area * baseCooling * f1_c * f2_c * f3_c;
+            const qCoolingTotal = qCooling * 1.10; // +10% margen equipo
+
+            // 4. Actualizar Interfaz Simplificada
+            if(document.getElementById('simp-res-heat-w')) {
+                document.getElementById('simp-res-heat-w').innerHTML = Math.round(qHeatingTotal) + ' <span class="text-sm font-normal text-gray-500 dark:text-slate-400">W</span>';
+                document.getElementById('simp-res-heat-kcal').innerText = Math.round(qHeatingTotal * 0.86) + ' kcal/h';
+            }
+            if(document.getElementById('simp-res-cool-w')) {
+                document.getElementById('simp-res-cool-w').innerHTML = Math.round(qCoolingTotal) + ' <span class="text-sm font-normal text-gray-500 dark:text-slate-400">W</span>';
+                document.getElementById('simp-res-cool-fg').innerText = Math.round(qCoolingTotal * 0.86) + ' fg/h';
+            }
+        }
+
+        // LÓGICA DE PESTAÑAS (TABS INTERNAS TÉRMICO)
         function switchTab(tab) {
             document.getElementById('tab-verano').classList.add('hidden');
             document.getElementById('tab-invierno').classList.add('hidden');
@@ -378,7 +570,7 @@
             document.getElementById(`btn-${tab}`).classList.add(`active-${tab}`);
         }
 
-        // --- DEFINICIÓN DE TIPOS ---
+        // --- DEFINICIÓN DE TIPOS (DETALLADO) ---
         const tiposVerano = `
             <option value="opaco">Muro/Cubierta Ext (CLTD)</option>
             <option value="particion_int">Partición Interior (ΔT Manual)</option>
@@ -424,7 +616,6 @@
             const i1 = tr.querySelector('.row-val1');
             const i2 = tr.querySelector('.row-val2');
             
-            // Auto-rellenar ayudas visuales según el tipo elegido en verano
             i1.disabled = false; i2.disabled = false;
             i1.removeAttribute('readonly'); i2.removeAttribute('readonly');
 
@@ -512,7 +703,7 @@
         }
 
         function calculateAll() {
-            // 1. Obtener Condiciones
+            // 1. Obtener Condiciones (Detallado)
             const vText = parseFloat(document.getElementById('v-ext-t').value) || 0;
             const vTint = parseFloat(document.getElementById('v-int-t').value) || 0;
             const vDw = parseFloat(document.getElementById('v-dw').value) || 0;
@@ -522,7 +713,7 @@
             const iTint = parseFloat(document.getElementById('i-int-t').value) || 0;
             const iDT = iTint - iText; // dT Invierno
 
-            // 2. Calcular Verano
+            // 2. Calcular Verano (Detallado)
             let sumVSens = 0, sumVLat = 0;
             document.querySelectorAll('#tbody-verano tr').forEach(row => {
                 const type = row.querySelector('.row-type-v').value;
@@ -556,7 +747,7 @@
                 sumVSens += qSens; sumVLat += qLat;
             });
 
-            // 3. Calcular Invierno
+            // 3. Calcular Invierno (Detallado)
             let sumISens = 0, sumITrans = 0, sumIVent = 0;
             
             document.querySelectorAll('#tbody-invierno tr').forEach(row => {
@@ -580,7 +771,7 @@
                 if(type === 'ventilacion') sumIVent += q;
             });
 
-            // 4. Actualizar Interfaz (Verano)
+            // 4. Actualizar Interfaz Detallada (Verano)
             document.getElementById('tot-v-sens').innerText = Math.round(sumVSens) + ' W';
             document.getElementById('tot-v-lat').innerText = Math.round(sumVLat) + ' W';
             document.getElementById('res-v-sens-w').innerText = Math.round(sumVSens) + ' W';
@@ -593,13 +784,16 @@
             const fcs = totalVerano > 0 ? (sumVSens / totalVerano).toFixed(2) : "0.00";
             document.getElementById('res-v-fcs').innerText = 'FCS: ' + fcs;
 
-            // 5. Actualizar Interfaz (Invierno)
+            // 5. Actualizar Interfaz Detallada (Invierno)
             document.getElementById('tot-i-sens').innerText = Math.round(sumISens) + ' W';
             document.getElementById('res-i-trans-w').innerText = Math.round(sumITrans) + ' W';
             document.getElementById('res-i-vent-w').innerText = Math.round(sumIVent) + ' W';
             
             document.getElementById('res-i-total-kw').innerHTML = (sumISens/1000).toFixed(2) + ' <span class="text-sm text-slate-500">kW</span>';
             document.getElementById('res-i-kcal').innerText = Math.round(sumISens * 0.86) + ' kcal/h';
+            
+            // Actualizar también el método simplificado en paralelo
+            calculateSimplifiedMethod();
         }
 
         // --- FUNCIONES DE GUARDADO Y EXPORTACIÓN ---
@@ -610,7 +804,12 @@
                     vIntT: document.getElementById('v-int-t').value,
                     vDw: document.getElementById('v-dw').value,
                     iExtT: document.getElementById('i-ext-t').value,
-                    iIntT: document.getElementById('i-int-t').value
+                    iIntT: document.getElementById('i-int-t').value,
+                    simpArea: document.getElementById('simp-area').value,
+                    simpAge: document.getElementById('simp-age').value,
+                    simpZone: document.getElementById('simp-zone').value,
+                    simpSun: document.getElementById('simp-sun').value,
+                    simpWalls: document.getElementById('simp-walls').value
                 },
                 verano: [],
                 invierno: []
@@ -649,6 +848,12 @@
                 document.getElementById('v-dw').value = data.config.vDw || 5;
                 document.getElementById('i-ext-t').value = data.config.iExtT || 2;
                 document.getElementById('i-int-t').value = data.config.iIntT || 21;
+                
+                if(data.config.simpArea) document.getElementById('simp-area').value = data.config.simpArea;
+                if(data.config.simpAge) document.getElementById('simp-age').value = data.config.simpAge;
+                if(data.config.simpZone) document.getElementById('simp-zone').value = data.config.simpZone;
+                if(data.config.simpSun) document.getElementById('simp-sun').value = data.config.simpSun;
+                if(data.config.simpWalls) document.getElementById('simp-walls').value = data.config.simpWalls;
             }
 
             // Cargar Verano
@@ -710,7 +915,6 @@
                     const data = JSON.parse(e.target.result);
                     loadProjectData(data);
                     saveProjectToStorage();
-                    // Custom message box could be used here instead of alert()
                     console.log("Proyecto importado correctamente.");
                 } catch(err) {
                     console.error("Error al leer el archivo JSON.");
@@ -721,8 +925,7 @@
         }
 
         function confirmReset(tab) {
-            // In a professional app, a custom modal is better than confirm()
-            if(confirm('¿Estás seguro de que quieres limpiar toda la tabla? Perderás los datos no exportados.')) {
+            if(confirm('¿Estás seguro de que quieres limpiar toda la tabla detallada? Perderás los datos no exportados.')) {
                 if(tab === 'verano') loadDefaultVerano();
                 if(tab === 'invierno') loadDefaultInvierno();
                 triggerCalculate();
@@ -750,6 +953,18 @@
             addRowInvierno('Aire Exterior', 'ventilacion', 200, 0.34, 19);
         }
 
+        function toggleVisibility(id, btnElement) {
+            const el = document.getElementById(id);
+            const icon = btnElement.querySelector('svg') || btnElement.parentElement.querySelector('button svg');
+            if (el.classList.contains('hidden')) {
+                el.classList.remove('hidden');
+                if (icon) icon.parentElement.classList.remove('rotate-180');
+            } else {
+                el.classList.add('hidden');
+                if (icon) icon.parentElement.classList.add('rotate-180');
+            }
+        }
+
         // Inicializar aplicación
         window.onload = () => {
             initTheme();
@@ -761,6 +976,7 @@
                 isRestoring = false;
                 calculateAll();
             }
+            calculateSimplifiedMethod();
         };
     </script>
 </body>
