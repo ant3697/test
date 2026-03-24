@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculador Profesional de Cargas Térmicas</title>
+    <!-- Configuración de Tailwind antes de la carga del CDN para evitar ReferenceError -->
+    <script>
+        window.tailwind = {
+            config: {
+                darkMode: 'class',
+                theme: {
+                    extend: {
+                        colors: {
+                            border: "hsl(var(--border))",
+                            background: "hsl(var(--background))",
+                            foreground: "hsl(var(--foreground))",
+                            accent: "#f59e0b",
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Roboto+Condensed:wght@400;700;800&display=swap');
+        
+        :root {
+            --bg-app: #f1f5f9;
+            --bg-surface: #ffffff;
+            --text-primary: #0f172a;
+            --border-default: rgba(0, 0, 0, 0.1);
+            --accent-base: #f59e0b;
+        }
+
+        .dark {
+            --bg-app: #0f172a;
+            --bg-surface: #1e293b;
+            --text-primary: #f8fafc;
+            --border-default: rgba(255, 255, 255, 0.1);
+            --accent-base: #fbbf24;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-app);
+            color: var(--text-primary);
+        }
+
+        .technical-font { font-family: 'Roboto Condensed', sans-serif; }
+
+        .glass-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-default);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        input[type="number"], input[type="text"], select {
+            background: var(--bg-app);
+            border: 1px solid var(--border-default);
+            color: var(--text-primary);
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 13px;
+            width: 100%;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, select:focus { border-color: var(--accent-base); }
+        
+        input:disabled, input[readonly] {
+            opacity: 0.6;
+            cursor: not-allowed;
+            border-style: dashed;
+        }
+
+        .label-tech {
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .tab-btn {
+            opacity: 0.5;
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .tab-btn.active-verano {
+            opacity: 1;
+            color: #f97316; /* orange-500 */
+            border-bottom-color: #f97316;
+        }
+        .tab-btn.active-invierno {
+            opacity: 1;
+            color: #3b82f6; /* blue-500 */
+            border-bottom-color: #3b82f6;
+        }
+
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white; color: black; }
+            .glass-card { box-shadow: none; border: 1px solid #ccc; margin-bottom: 20px;}
+            .tab-content { display: block !important; } /* Mostrar ambas tablas al imprimir */
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-24">
+
+    <!-- Header -->
+    <header class="bg-slate-900 text-white p-4 sticky top-0 z-50 shadow-xl no-print border-b border-amber-500/30">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-amber-500 p-2 rounded-lg text-slate-900">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight technical-font italic uppercase flex items-center gap-2">
+                        HDS Thermal Load Designer
+                        <span id="save-indicator" class="text-[9px] font-normal text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full opacity-0 transition-opacity">Guardado ✓</span>
+                    </h1>
+                    <p class="text-amber-400 font-bold text-[10px] uppercase tracking-widest">Cálculo Avanzado: Sensible vs Latente</p>
+                </div>
+            </div>
+            <div class="flex flex-wrap gap-2 items-center">
+                <label class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg text-xs font-bold uppercase transition-all cursor-pointer border border-slate-700 flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                    Importar
+                    <input type="file" accept=".json" onchange="importProject(event)" class="hidden">
+                </label>
+                <button onclick="exportProject()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg text-xs font-bold uppercase transition-all border border-slate-700 flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                    Exportar
+                </button>
+                <div class="w-px h-6 bg-slate-700 mx-1"></div>
+                <button onclick="window.print()" class="bg-amber-600 hover:bg-amber-500 text-slate-900 px-3 py-2 rounded-lg text-xs font-bold uppercase transition-all shadow-lg shadow-amber-500/20">Imprimir</button>
+                <button onclick="toggleTheme()" class="bg-slate-800 p-2 rounded-lg hover:bg-slate-700 transition-colors ml-1" title="Cambiar Tema">🌓</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 mt-8 space-y-8">
+        
+        <!-- 1. CONDICIONES DE DISEÑO -->
+        <section class="glass-card p-6">
+            <h2 class="text-sm font-black uppercase tracking-widest mb-6 flex items-center gap-2 text-amber-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" /></svg>
+                1. Condiciones de Diseño
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Verano -->
+                <div class="space-y-4 p-5 bg-orange-500/5 rounded-xl border border-orange-500/20">
+                    <h3 class="text-xs font-black text-orange-500 uppercase border-b border-orange-500/20 pb-2 mb-4">Refrigeración (Verano)</h3>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div>
+                            <label class="label-tech">T. Ext. Diseño (°C)</label>
+                            <input type="number" id="v-ext-t" value="34" oninput="triggerCalculate()" class="text-orange-500 font-bold">
+                        </div>
+                        <div>
+                            <label class="label-tech">T. Int. Consigna (°C)</label>
+                            <input type="number" id="v-int-t" value="25" oninput="triggerCalculate()">
+                        </div>
+                        <div>
+                            <label class="label-tech">Δw Humedad (g/kg)</label>
+                            <input type="number" id="v-dw" value="5" step="0.1" oninput="triggerCalculate()" title="Diferencia de humedad específica ext-int">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Invierno -->
+                <div class="space-y-4 p-5 bg-blue-500/5 rounded-xl border border-blue-500/20">
+                    <h3 class="text-xs font-black text-blue-500 uppercase border-b border-blue-500/20 pb-2 mb-4">Calefacción (Invierno)</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="label-tech">T. Ext. Diseño (°C)</label>
+                            <input type="number" id="i-ext-t" value="2" oninput="triggerCalculate()" class="text-blue-500 font-bold">
+                        </div>
+                        <div>
+                            <label class="label-tech">T. Int. Consigna (°C)</label>
+                            <input type="number" id="i-int-t" value="21" oninput="triggerCalculate()">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. TABLAS DE CARGAS (TABS) -->
+        <section class="glass-card overflow-hidden">
+            <!-- Navegación Tabs -->
+            <div class="flex border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 no-print">
+                <button onclick="switchTab('verano')" id="btn-verano" class="tab-btn active-verano flex-1 py-4 text-sm font-black uppercase tracking-widest flex items-center justify-center gap-2">
+                    ☀️ Cargas de Verano
+                </button>
+                <button onclick="switchTab('invierno')" id="btn-invierno" class="tab-btn flex-1 py-4 text-sm font-black uppercase tracking-widest flex items-center justify-center gap-2">
+                    ❄️ Cargas de Invierno
+                </button>
+            </div>
+
+            <!-- TAB: VERANO -->
+            <div id="tab-verano" class="tab-content block">
+                <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-center gap-4 bg-orange-50 dark:bg-orange-900/10">
+                    <p class="text-xs text-orange-600 dark:text-orange-400 font-semibold">Cálculo de ganancias por transmisión, radiación solar, ventilación y cargas internas.</p>
+                    <div class="flex gap-2 no-print shrink-0">
+                        <button onclick="confirmReset('verano')" class="text-[10px] font-bold uppercase px-3 py-2 bg-red-500/10 text-red-500 rounded hover:bg-red-500 hover:text-white transition-all">Limpiar</button>
+                        <button onclick="addRowVerano()" class="text-[10px] font-bold uppercase px-3 py-2 bg-orange-500 text-white rounded shadow hover:bg-orange-600 transition-all">+ Fila Verano</button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse min-w-[800px]">
+                        <thead class="bg-slate-100 dark:bg-slate-800 text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                            <tr>
+                                <th class="p-3 border-b dark:border-slate-700">Elemento</th>
+                                <th class="p-3 border-b dark:border-slate-700 w-48">Tipo de Carga</th>
+                                <th class="p-3 border-b dark:border-slate-700 w-24">Cant / Área</th>
+                                <th class="p-3 border-b dark:border-slate-700 w-28" title="Transmisión(U), Radiación(Irr), Interna(W), Ocupantes(W-sens)">U / Irr / W_s</th>
+                                <th class="p-3 border-b dark:border-slate-700 w-28" title="Transmisión(CLTD), Radiación(FS), Interna(W-lat)">CLTD/ΔT/FS/W_l</th>
+                                <th class="p-3 border-b dark:border-slate-700 text-right w-28 bg-orange-50/50 dark:bg-orange-900/20">Sensible (W)</th>
+                                <th class="p-3 border-b dark:border-slate-700 text-right w-28 bg-teal-50/50 dark:bg-teal-900/20">Latente (W)</th>
+                                <th class="p-3 border-b dark:border-slate-700 w-10 no-print"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-verano" class="text-sm">
+                            <!-- Filas dinámicas Verano -->
+                        </tbody>
+                        <tfoot class="bg-slate-900 text-white font-bold technical-font">
+                            <tr>
+                                <td colspan="5" class="p-4 text-right uppercase tracking-widest text-slate-400">Totales Verano:</td>
+                                <td id="tot-v-sens" class="p-4 text-right text-orange-400 text-lg">0 W</td>
+                                <td id="tot-v-lat" class="p-4 text-right text-teal-400 text-lg">0 W</td>
+                                <td class="no-print"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB: INVIERNO -->
+            <div id="tab-invierno" class="tab-content hidden">
+                <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-center gap-4 bg-blue-50 dark:bg-blue-900/10">
+                    <p class="text-xs text-blue-600 dark:text-blue-400 font-semibold">Cálculo de pérdidas térmicas. Soporta espacios no calefactados con ΔT manual.</p>
+                    <div class="flex gap-2 no-print shrink-0">
+                        <button onclick="confirmReset('invierno')" class="text-[10px] font-bold uppercase px-3 py-2 bg-red-500/10 text-red-500 rounded hover:bg-red-500 hover:text-white transition-all">Limpiar</button>
+                        <button onclick="addRowInvierno()" class="text-[10px] font-bold uppercase px-3 py-2 bg-blue-500 text-white rounded shadow hover:bg-blue-600 transition-all">+ Fila Invierno</button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse min-w-[700px]">
+                        <thead class="bg-slate-100 dark:bg-slate-800 text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                            <tr>
+                                <th class="p-3 border-b dark:border-slate-700">Elemento</th>
+                                <th class="p-3 border-b dark:border-slate-700 w-56">Tipo de Pérdida</th>
+                                <th class="p-3 border-b dark:border-slate-700 w-28">Área / Caudal</th>
+                                <th class="p-3 border-b dark:border-slate-700 w-28">U / Coef</th>
+                                <th class="p-3 border-b dark:border-slate-700 w-28">ΔT (K)</th>
+                                <th class="p-3 border-b dark:border-slate-700 text-right w-36 bg-blue-50/50 dark:bg-blue-900/20">Pérdida Sens. (W)</th>
+                                <th class="p-3 border-b dark:border-slate-700 w-10 no-print"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-invierno" class="text-sm">
+                            <!-- Filas dinámicas Invierno -->
+                        </tbody>
+                        <tfoot class="bg-slate-900 text-white font-bold technical-font">
+                            <tr>
+                                <td colspan="5" class="p-4 text-right uppercase tracking-widest text-slate-400">Total Invierno:</td>
+                                <td id="tot-i-sens" class="p-4 text-right text-blue-400 text-lg">0 W</td>
+                                <td class="no-print"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. RESUMEN EJECUTIVO -->
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Resumen Verano -->
+            <div class="glass-card p-6 border-l-4 border-l-orange-500 relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4 opacity-10">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                </div>
+                <h3 class="text-orange-500 font-black uppercase text-xs mb-4 tracking-tighter">Resultados Refrigeración (Verano)</h3>
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded border border-slate-100 dark:border-slate-700">
+                        <p class="text-[10px] uppercase text-slate-500">Carga Sensible</p>
+                        <p class="font-bold text-orange-500" id="res-v-sens-w">0 W</p>
+                    </div>
+                    <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded border border-slate-100 dark:border-slate-700">
+                        <p class="text-[10px] uppercase text-slate-500">Carga Latente</p>
+                        <p class="font-bold text-teal-500" id="res-v-lat-w">0 W</p>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-end border-t border-slate-200 dark:border-slate-700 pt-4">
+                    <div>
+                        <p class="text-[10px] text-slate-500 uppercase mb-1">Carga Total de Refrigeración</p>
+                        <p class="text-4xl font-black technical-font" id="res-v-total-kw">0.00 <span class="text-sm font-normal text-slate-500">kW</span></p>
+                    </div>
+                    <div class="text-right space-y-1">
+                        <p class="text-lg font-bold text-slate-700 dark:text-slate-300" id="res-v-frig">0 fg/h</p>
+                        <p class="text-xs font-bold text-amber-500 bg-amber-500/10 px-2 py-1 rounded" id="res-v-fcs">FCS: 0.00</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resumen Invierno -->
+            <div class="glass-card p-6 border-l-4 border-l-blue-500 relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4 opacity-10">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707" /></svg>
+                </div>
+                <h3 class="text-blue-500 font-black uppercase text-xs mb-4 tracking-tighter">Resultados Calefacción (Invierno)</h3>
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded border border-slate-100 dark:border-slate-700">
+                        <p class="text-[10px] uppercase text-slate-500">Pérdidas Transmisión</p>
+                        <p class="font-bold text-blue-500" id="res-i-trans-w">0 W</p>
+                    </div>
+                    <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded border border-slate-100 dark:border-slate-700">
+                        <p class="text-[10px] uppercase text-slate-500">Pérdidas Ventilación</p>
+                        <p class="font-bold text-sky-500" id="res-i-vent-w">0 W</p>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-end border-t border-slate-200 dark:border-slate-700 pt-4">
+                    <div>
+                        <p class="text-[10px] text-slate-500 uppercase mb-1">Carga Total de Calefacción</p>
+                        <p class="text-4xl font-black technical-font" id="res-i-total-kw">0.00 <span class="text-sm font-normal text-slate-500">kW</span></p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-lg font-bold text-slate-700 dark:text-slate-300" id="res-i-kcal">0 kcal/h</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Panel Didáctico Fijo -->
+    <footer class="fixed bottom-0 w-full bg-slate-900 border-t border-slate-800 p-2 no-print z-50">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-center items-center gap-2 md:gap-6 text-center">
+            <code class="text-[9px] text-slate-400">Verano: Q_s = U·A·CLTD(o ΔT) | Q_rad = A·Irr·FS | Q_vent_s = V·0.34·ΔT | Q_vent_l = V·0.84·Δw</code>
+            <code class="text-[9px] text-slate-400">Invierno: Q = U·A·ΔT | Q_vent = V·0.34·ΔT</code>
+        </div>
+    </footer>
+
+    <script>
+        // LÓGICA DE TEMAS
+        function initTheme() {
+            if (localStorage.getItem('hds_theme') === 'light') {
+                document.documentElement.classList.remove('dark');
+            } else {
+                document.documentElement.classList.add('dark'); // Default dark
+            }
+        }
+
+        function toggleTheme() { 
+            document.documentElement.classList.toggle('dark'); 
+            localStorage.setItem('hds_theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        }
+
+        // LÓGICA DE PESTAÑAS (TABS)
+        function switchTab(tab) {
+            document.getElementById('tab-verano').classList.add('hidden');
+            document.getElementById('tab-invierno').classList.add('hidden');
+            document.getElementById('btn-verano').classList.remove('active-verano');
+            document.getElementById('btn-invierno').classList.remove('active-invierno');
+            
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+            document.getElementById(`btn-${tab}`).classList.add(`active-${tab}`);
+        }
+
+        // --- DEFINICIÓN DE TIPOS ---
+        const tiposVerano = `
+            <option value="opaco">Muro/Cubierta Ext (CLTD)</option>
+            <option value="particion_int">Partición Interior (ΔT Manual)</option>
+            <option value="vidrio_rad">Vidrio (Radiación Solar)</option>
+            <option value="vidrio_trans">Vidrio (Transmisión ΔT)</option>
+            <option value="ventilacion">Ventilación (Sens+Lat)</option>
+            <option value="personas">Ocupantes (Sens+Lat)</option>
+            <option value="equipos">Iluminación / Equipos</option>
+        `;
+
+        const tiposInvierno = `
+            <option value="transmision_ext">Transmisión Exterior (ΔT Auto)</option>
+            <option value="transmision_int">Partición Interior (ΔT Manual)</option>
+            <option value="ventilacion">Infiltración / Ventilación</option>
+        `;
+
+        // --- GESTIÓN TABLA VERANO ---
+        const tbodyVerano = document.getElementById('tbody-verano');
+
+        function addRowVerano(desc = 'Nuevo Elemento', tipo = 'opaco', cant = 10, val1 = 0.5, val2 = 10) {
+            const tr = document.createElement('tr');
+            tr.className = "border-b border-slate-200 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/20 transition-colors";
+            tr.innerHTML = `
+                <td class="p-2"><input type="text" value="${desc}" class="row-desc" oninput="triggerCalculate()"></td>
+                <td class="p-2">
+                    <select class="row-type-v" onchange="updateRowHintsV(this)">${tiposVerano}</select>
+                </td>
+                <td class="p-2"><input type="number" step="any" value="${cant}" class="row-cant text-center" oninput="triggerCalculate()"></td>
+                <td class="p-2"><input type="number" step="any" value="${val1}" class="row-val1 text-center" oninput="triggerCalculate()"></td>
+                <td class="p-2"><input type="number" step="any" value="${val2}" class="row-val2 text-center" oninput="triggerCalculate()"></td>
+                <td class="p-2 text-right font-mono font-bold text-orange-600 dark:text-orange-400 row-res-s">0</td>
+                <td class="p-2 text-right font-mono font-bold text-teal-600 dark:text-teal-400 row-res-l">0</td>
+                <td class="p-2 text-center no-print"><button onclick="this.closest('tr').remove(); triggerCalculate()" class="text-slate-400 hover:text-red-500 font-bold p-1">✕</button></td>
+            `;
+            tr.querySelector('.row-type-v').value = tipo;
+            tbodyVerano.appendChild(tr);
+            updateRowHintsV(tr.querySelector('.row-type-v'), false);
+        }
+
+        function updateRowHintsV(select, recalc = true) {
+            const tr = select.closest('tr');
+            const type = select.value;
+            const i1 = tr.querySelector('.row-val1');
+            const i2 = tr.querySelector('.row-val2');
+            
+            // Auto-rellenar ayudas visuales según el tipo elegido en verano
+            i1.disabled = false; i2.disabled = false;
+            i1.removeAttribute('readonly'); i2.removeAttribute('readonly');
+
+            if(type === 'opaco') { 
+                i1.title = "Valor U (W/m²K)"; i2.title = "CLTD (°C)"; 
+            }
+            else if(type === 'particion_int') { 
+                i1.title = "Valor U (W/m²K)"; i2.title = "ΔT Manual (°C)"; 
+            }
+            else if(type === 'vidrio_trans') { 
+                i1.title = "Valor U (W/m²K)"; i2.title = "ΔT Auto-calculado"; 
+                i2.setAttribute('readonly', true);
+            }
+            else if(type === 'vidrio_rad') { 
+                i1.title = "Irradiación (W/m²)"; i2.title = "Factor Solar (SC)"; 
+            }
+            else if(type === 'ventilacion') { 
+                i1.value = 0.34; i2.value = 0.84; 
+                i1.title = "Coef. Sensible (0.34)"; i2.title = "Coef. Latente (0.84)"; 
+                i1.disabled=true; i2.disabled=true;
+            }
+            else if(type === 'personas') { 
+                i1.title = "W Sensible/pers"; i2.title = "W Latente/pers"; 
+            }
+            else if(type === 'equipos') { 
+                i1.title = "W/m² o W total"; i2.value = 0; i2.disabled = true; 
+            }
+            
+            if(recalc) triggerCalculate();
+        }
+
+        // --- GESTIÓN TABLA INVIERNO ---
+        const tbodyInvierno = document.getElementById('tbody-invierno');
+
+        function addRowInvierno(desc = 'Muro Fachada', tipo = 'transmision_ext', cant = 30, u = 0.35, dt = 19) {
+            const tr = document.createElement('tr');
+            tr.className = "border-b border-slate-200 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/20 transition-colors";
+            tr.innerHTML = `
+                <td class="p-2"><input type="text" value="${desc}" class="row-desc" oninput="triggerCalculate()"></td>
+                <td class="p-2">
+                    <select class="row-type-i" onchange="updateRowHintsI(this)">${tiposInvierno}</select>
+                </td>
+                <td class="p-2"><input type="number" step="any" value="${cant}" class="row-cant text-center" oninput="triggerCalculate()"></td>
+                <td class="p-2"><input type="number" step="any" value="${u}" class="row-u text-center" oninput="triggerCalculate()"></td>
+                <td class="p-2"><input type="number" step="any" value="${dt}" class="row-dt text-center" oninput="triggerCalculate()"></td>
+                <td class="p-2 text-right font-mono font-bold text-blue-600 dark:text-blue-400 row-res-s">0</td>
+                <td class="p-2 text-center no-print"><button onclick="this.closest('tr').remove(); triggerCalculate()" class="text-slate-400 hover:text-red-500 font-bold p-1">✕</button></td>
+            `;
+            tr.querySelector('.row-type-i').value = tipo;
+            tbodyInvierno.appendChild(tr);
+            updateRowHintsI(tr.querySelector('.row-type-i'), false);
+        }
+
+        function updateRowHintsI(select, recalc = true) {
+            const tr = select.closest('tr');
+            const type = select.value;
+            const uInput = tr.querySelector('.row-u');
+            const dtInput = tr.querySelector('.row-dt');
+            
+            uInput.disabled = false;
+            dtInput.removeAttribute('readonly');
+            dtInput.title = "ΔT Manual (K)";
+
+            if(type === 'ventilacion') { 
+                uInput.value = 0.34; 
+                uInput.disabled = true; 
+                dtInput.setAttribute('readonly', true);
+                dtInput.title = "ΔT Auto-calculado";
+            } else if (type === 'transmision_ext') {
+                dtInput.setAttribute('readonly', true);
+                dtInput.title = "ΔT Auto-calculado";
+            }
+
+            if(recalc) triggerCalculate();
+        }
+
+        // --- SISTEMA DE ESTADO Y AUTO-GUARDADO ---
+        let isRestoring = false;
+
+        function triggerCalculate() {
+            if(!isRestoring) {
+                calculateAll();
+                saveProjectToStorage();
+            }
+        }
+
+        function calculateAll() {
+            // 1. Obtener Condiciones
+            const vText = parseFloat(document.getElementById('v-ext-t').value) || 0;
+            const vTint = parseFloat(document.getElementById('v-int-t').value) || 0;
+            const vDw = parseFloat(document.getElementById('v-dw').value) || 0;
+            const vDT = vText - vTint; // dT Verano
+
+            const iText = parseFloat(document.getElementById('i-ext-t').value) || 0;
+            const iTint = parseFloat(document.getElementById('i-int-t').value) || 0;
+            const iDT = iTint - iText; // dT Invierno
+
+            // 2. Calcular Verano
+            let sumVSens = 0, sumVLat = 0;
+            document.querySelectorAll('#tbody-verano tr').forEach(row => {
+                const type = row.querySelector('.row-type-v').value;
+                const cant = parseFloat(row.querySelector('.row-cant').value) || 0;
+                const v1 = parseFloat(row.querySelector('.row-val1').value) || 0;
+                const v2Input = row.querySelector('.row-val2');
+                
+                // Forzar dT si es vidrio_trans exterior
+                if(type === 'vidrio_trans') { v2Input.value = vDT; }
+                
+                const v2 = parseFloat(v2Input.value) || 0;
+                let qSens = 0, qLat = 0;
+
+                if(type === 'opaco' || type === 'particion_int' || type === 'vidrio_trans' || type === 'vidrio_rad') { 
+                    qSens = cant * v1 * v2; 
+                } 
+                else if(type === 'ventilacion') { 
+                    qSens = cant * 0.34 * vDT;  
+                    qLat = cant * 0.84 * vDw;   
+                }
+                else if(type === 'personas') {
+                    qSens = cant * v1;
+                    qLat = cant * v2;
+                }
+                else if(type === 'equipos') {
+                    qSens = cant * v1;
+                }
+
+                row.querySelector('.row-res-s').innerText = Math.round(qSens);
+                row.querySelector('.row-res-l').innerText = Math.round(qLat);
+                sumVSens += qSens; sumVLat += qLat;
+            });
+
+            // 3. Calcular Invierno
+            let sumISens = 0, sumITrans = 0, sumIVent = 0;
+            
+            document.querySelectorAll('#tbody-invierno tr').forEach(row => {
+                const type = row.querySelector('.row-type-i').value;
+                const cant = parseFloat(row.querySelector('.row-cant').value) || 0;
+                const u = parseFloat(row.querySelector('.row-u').value) || 0;
+                const dtInput = row.querySelector('.row-dt');
+                
+                // Actualizar UI con el dT global solo si es elemento exterior
+                if(type === 'transmision_ext' || type === 'ventilacion') {
+                    dtInput.value = iDT; 
+                }
+                
+                let rowDT = parseFloat(dtInput.value) || 0;
+                let q = cant * u * rowDT;
+                
+                row.querySelector('.row-res-s').innerText = Math.round(q);
+                sumISens += q;
+
+                if(type.includes('transmision')) sumITrans += q;
+                if(type === 'ventilacion') sumIVent += q;
+            });
+
+            // 4. Actualizar Interfaz (Verano)
+            document.getElementById('tot-v-sens').innerText = Math.round(sumVSens) + ' W';
+            document.getElementById('tot-v-lat').innerText = Math.round(sumVLat) + ' W';
+            document.getElementById('res-v-sens-w').innerText = Math.round(sumVSens) + ' W';
+            document.getElementById('res-v-lat-w').innerText = Math.round(sumVLat) + ' W';
+            
+            const totalVerano = sumVSens + sumVLat;
+            document.getElementById('res-v-total-kw').innerHTML = (totalVerano/1000).toFixed(2) + ' <span class="text-sm text-slate-500">kW</span>';
+            document.getElementById('res-v-frig').innerText = Math.round(totalVerano * 0.86) + ' fg/h';
+            
+            const fcs = totalVerano > 0 ? (sumVSens / totalVerano).toFixed(2) : "0.00";
+            document.getElementById('res-v-fcs').innerText = 'FCS: ' + fcs;
+
+            // 5. Actualizar Interfaz (Invierno)
+            document.getElementById('tot-i-sens').innerText = Math.round(sumISens) + ' W';
+            document.getElementById('res-i-trans-w').innerText = Math.round(sumITrans) + ' W';
+            document.getElementById('res-i-vent-w').innerText = Math.round(sumIVent) + ' W';
+            
+            document.getElementById('res-i-total-kw').innerHTML = (sumISens/1000).toFixed(2) + ' <span class="text-sm text-slate-500">kW</span>';
+            document.getElementById('res-i-kcal').innerText = Math.round(sumISens * 0.86) + ' kcal/h';
+        }
+
+        // --- FUNCIONES DE GUARDADO Y EXPORTACIÓN ---
+        function getProjectData() {
+            const data = {
+                config: {
+                    vExtT: document.getElementById('v-ext-t').value,
+                    vIntT: document.getElementById('v-int-t').value,
+                    vDw: document.getElementById('v-dw').value,
+                    iExtT: document.getElementById('i-ext-t').value,
+                    iIntT: document.getElementById('i-int-t').value
+                },
+                verano: [],
+                invierno: []
+            };
+
+            document.querySelectorAll('#tbody-verano tr').forEach(row => {
+                data.verano.push({
+                    desc: row.querySelector('.row-desc').value,
+                    type: row.querySelector('.row-type-v').value,
+                    cant: row.querySelector('.row-cant').value,
+                    val1: row.querySelector('.row-val1').value,
+                    val2: row.querySelector('.row-val2').value
+                });
+            });
+
+            document.querySelectorAll('#tbody-invierno tr').forEach(row => {
+                data.invierno.push({
+                    desc: row.querySelector('.row-desc').value,
+                    type: row.querySelector('.row-type-i').value,
+                    cant: row.querySelector('.row-cant').value,
+                    u: row.querySelector('.row-u').value,
+                    dt: row.querySelector('.row-dt').value
+                });
+            });
+
+            return data;
+        }
+
+        function loadProjectData(data) {
+            isRestoring = true;
+            
+            // Cargar Config
+            if(data.config) {
+                document.getElementById('v-ext-t').value = data.config.vExtT || 34;
+                document.getElementById('v-int-t').value = data.config.vIntT || 25;
+                document.getElementById('v-dw').value = data.config.vDw || 5;
+                document.getElementById('i-ext-t').value = data.config.iExtT || 2;
+                document.getElementById('i-int-t').value = data.config.iIntT || 21;
+            }
+
+            // Cargar Verano
+            tbodyVerano.innerHTML = '';
+            if(data.verano && data.verano.length > 0) {
+                data.verano.forEach(r => addRowVerano(r.desc, r.type, r.cant, r.val1, r.val2));
+            }
+
+            // Cargar Invierno
+            tbodyInvierno.innerHTML = '';
+            if(data.invierno && data.invierno.length > 0) {
+                data.invierno.forEach(r => addRowInvierno(r.desc, r.type, r.cant, r.u, r.dt));
+            }
+
+            isRestoring = false;
+            calculateAll();
+        }
+
+        function saveProjectToStorage() {
+            const data = getProjectData();
+            localStorage.setItem('hds_thermal_project', JSON.stringify(data));
+            
+            // Animación de guardado
+            const ind = document.getElementById('save-indicator');
+            ind.style.opacity = '1';
+            setTimeout(() => { ind.style.opacity = '0'; }, 1500);
+        }
+
+        function loadProjectFromStorage() {
+            const stored = localStorage.getItem('hds_thermal_project');
+            if(stored) {
+                try {
+                    const data = JSON.parse(stored);
+                    loadProjectData(data);
+                    return true;
+                } catch(e) { console.error("Error cargando guardado local", e); }
+            }
+            return false;
+        }
+
+        function exportProject() {
+            const data = getProjectData();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'Proyecto_Cargas_Termicas.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importProject(event) {
+            const file = event.target.files[0];
+            if(!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    loadProjectData(data);
+                    saveProjectToStorage();
+                    // Custom message box could be used here instead of alert()
+                    console.log("Proyecto importado correctamente.");
+                } catch(err) {
+                    console.error("Error al leer el archivo JSON.");
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = ''; // Reset input
+        }
+
+        function confirmReset(tab) {
+            // In a professional app, a custom modal is better than confirm()
+            if(confirm('¿Estás seguro de que quieres limpiar toda la tabla? Perderás los datos no exportados.')) {
+                if(tab === 'verano') loadDefaultVerano();
+                if(tab === 'invierno') loadDefaultInvierno();
+                triggerCalculate();
+            }
+        }
+
+        function loadDefaultVerano() {
+            tbodyVerano.innerHTML = '';
+            addRowVerano('Muro Sur Exterior', 'opaco', 30, 0.35, 15);
+            addRowVerano('Muro Garaje (No Calef)', 'particion_int', 15, 0.50, 5);
+            addRowVerano('Cubierta', 'opaco', 120, 0.30, 24);
+            addRowVerano('Vidrio Sur (Rad)', 'vidrio_rad', 15, 350, 0.35);
+            addRowVerano('Vidrio Sur (Trans)', 'vidrio_trans', 15, 2.8, 9);
+            addRowVerano('Aire Exterior', 'ventilacion', 200, 0.34, 0.84);
+            addRowVerano('Ocupantes (Oficina)', 'personas', 5, 65, 45);
+            addRowVerano('Equipos e Iluminación', 'equipos', 120, 15, 0);
+        }
+
+        function loadDefaultInvierno() {
+            tbodyInvierno.innerHTML = '';
+            addRowInvierno('Muros Totales Ext', 'transmision_ext', 70, 0.35, 19);
+            addRowInvierno('Muro Pasillo Interior', 'transmision_int', 20, 0.60, 10);
+            addRowInvierno('Cubierta', 'transmision_ext', 120, 0.30, 19);
+            addRowInvierno('Vidrios Totales', 'transmision_ext', 23, 2.8, 19);
+            addRowInvierno('Aire Exterior', 'ventilacion', 200, 0.34, 19);
+        }
+
+        // Inicializar aplicación
+        window.onload = () => {
+            initTheme();
+            // Intentar cargar de LocalStorage, si no hay, cargar defaults
+            if(!loadProjectFromStorage()) {
+                isRestoring = true;
+                loadDefaultVerano();
+                loadDefaultInvierno();
+                isRestoring = false;
+                calculateAll();
+            }
+        };
+    </script>
+</body>
+</html>
